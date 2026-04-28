@@ -15,7 +15,7 @@ ingress:
   path: /
 
 env:
-  CLICKHOUSE_ADDR: "clickhouse:9000"
+  CLICKHOUSE_ADDR: "clickhouse.k8s-cost-insights.svc.cluster.local:9000"
   CLICKHOUSE_DATABASE: "test"
   CLICKHOUSE_USERNAME: "default"
   CLICKHOUSE_PASSWORD: ""

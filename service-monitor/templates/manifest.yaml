@@ -6,7 +6,9 @@ spec:
   selector:
     matchLabels:
       app: {{ .Values.selector.app }}
-
+  namespaceSelector:
+      matchNames:
+        - k8s-cost-insights
   endpoints:
     - port: {{ .Values.endpoint.port }}
       path: {{ .Values.endpoint.path }}

@@ -32,7 +32,7 @@ resource "helm_release" "prometheus" {
 resource "helm_release" "unit_cost_api" {
   name      = "unit-cost-api"
   chart = "./api-chart"
-  namespace = "default"
+  namespace = "k8s-cost-insights"
 
   values = [
     yamlencode({
@@ -52,11 +52,11 @@ resource "helm_release" "unit_cost_api" {
       }
 
       env = {
-        CLICKHOUSE_ADDR     = "clickhouse:9000"
+        CLICKHOUSE_ADDR     = "clickhouse.k8s-cost-insights.svc.cluster.local:9000"
         CLICKHOUSE_DATABASE = "default"
         CLICKHOUSE_USERNAME = "default"
         CLICKHOUSE_PASSWORD = ""
-        CLICKHOUSE_TABLE    = "cloud_costs"
+        CLICKHOUSE_TABLE    = "data"
       }
     })
   ]
