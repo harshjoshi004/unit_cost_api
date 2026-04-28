@@ -69,7 +69,7 @@ resource "helm_release" "unit_cost_api" {
 resource "helm_release" "api_monitor" {
   name      = "api-monitor"
   chart = "./service-monitor"
-  namespace = "default"
+  namespace = "k8s-cost-insights"
 
   values = [
     yamlencode({

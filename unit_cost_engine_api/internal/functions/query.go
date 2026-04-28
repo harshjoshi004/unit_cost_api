@@ -89,8 +89,10 @@ func scanRows(rows clickhouseRows) ([]map[string]any, error) {
 	for rows.Next() {
 		values := make([]any, len(columns))
 		dest := make([]any, len(columns))
+
 		for i := range values {
-			dest[i] = &values[i]
+			var v any
+			dest[i] = &v
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -98,9 +100,23 @@ func scanRows(rows clickhouseRows) ([]map[string]any, error) {
 		}
 
 		item := make(map[string]any, len(columns))
+
 		for i, column := range columns {
-			item[column] = jsonSafeValue(values[i])
+			val := *(dest[i].(*any))
+
+			switch v := val.(type) {
+
+			case nil:
+				item[column] = nil
+
+			case []byte:
+				item[column] = string(v)
+
+			default:
+				item[column] = v
+			}
 		}
+
 		result = append(result, item)
 	}
 
