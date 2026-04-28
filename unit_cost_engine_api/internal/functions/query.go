@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+	"strconv"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 
@@ -87,14 +88,11 @@ func scanRows(rows clickhouseRows) ([]map[string]any, error) {
 	result := make([]map[string]any, 0)
 
 	for rows.Next() {
+		raw := make([][]byte, len(columns))
 		dest := make([]any, len(columns))
 
-		values := make([]any, len(columns))
-
-		for i := range dest {
-			var v any
-			dest[i] = &v
-			values[i] = v
+		for i := range raw {
+			dest[i] = &raw[i]
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -104,16 +102,24 @@ func scanRows(rows clickhouseRows) ([]map[string]any, error) {
 		item := make(map[string]any, len(columns))
 
 		for i, col := range columns {
-			val := *(dest[i].(*any))
-
-			switch v := val.(type) {
-			case []byte:
-				item[col] = string(v)
-			case time.Time:
-				item[col] = v.UTC().Format(time.RFC3339)
-			default:
-				item[col] = v
+			if raw[i] == nil {
+				item[col] = nil
+				continue
 			}
+
+			str := string(raw[i])
+
+			// try float
+			switch col {
+			case "total_cost", "total_usage", "unit_cost":
+				if f, err := strconv.ParseFloat(str, 64); err == nil {
+					item[col] = f
+					continue
+				}
+			}
+
+			// fallback string
+			item[col] = str
 		}
 
 		result = append(result, item)
