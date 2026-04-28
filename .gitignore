@@ -1,0 +1,10 @@
+
+/.terraform
+/.vscode
+/k.txt
+/terraform.tfstate
+unit_cost_engine_api/.DS_Store
+unit_cost_engine_api/internal/.DS_Store
+.DS_Store
+
+.terraform.lock.hcl

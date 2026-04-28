@@ -1,0 +1,22 @@
+image:
+  repository: ""
+  tag: ""
+
+replicaCount: 1
+
+service:
+  name: api
+  port: 7000
+
+ingress:
+  enabled: true
+  className: traefik
+  host: unitcost.127.0.0.1.nip.io
+  path: /
+
+env:
+  CLICKHOUSE_ADDR: "clickhouse:9000"
+  CLICKHOUSE_DATABASE: "test"
+  CLICKHOUSE_USERNAME: "default"
+  CLICKHOUSE_PASSWORD: ""
+  CLICKHOUSE_TABLE: "data"
