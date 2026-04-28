@@ -31,7 +31,7 @@ resource "helm_release" "prometheus" {
 
 resource "helm_release" "unit_cost_api" {
   name      = "unit-cost-api"
-  chart     = "./api-chart"   
+  chart = "./api-chart"
   namespace = "default"
 
   values = [
@@ -68,7 +68,7 @@ resource "helm_release" "unit_cost_api" {
 
 resource "helm_release" "api_monitor" {
   name      = "api-monitor"
-  chart     = "./service-monitor"
+  chart = "./service-monitor"
   namespace = "default"
 
   values = [
