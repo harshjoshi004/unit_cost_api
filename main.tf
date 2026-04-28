@@ -53,9 +53,9 @@ resource "helm_release" "unit_cost_api" {
 
       env = {
         CLICKHOUSE_ADDR     = "clickhouse.k8s-cost-insights.svc.cluster.local:9000"
-        CLICKHOUSE_DATABASE = "default"
-        CLICKHOUSE_USERNAME = "default"
-        CLICKHOUSE_PASSWORD = ""
+        CLICKHOUSE_DATABASE = "test"
+        CLICKHOUSE_USERNAME = "metabasetest"
+        CLICKHOUSE_PASSWORD = "123456"
         CLICKHOUSE_TABLE    = "data"
       }
     })

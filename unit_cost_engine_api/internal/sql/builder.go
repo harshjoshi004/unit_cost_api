@@ -59,6 +59,7 @@ func BuildDataQuery(opts DataQueryOptions) (string, []any, error) {
 	} else {
 		query += " ORDER BY month_year, resource_type, ifNull(region, '')"
 	}
+
 	query += " LIMIT ?"
 	args = append(args, limit)
 
@@ -91,12 +92,12 @@ func BuildMetricsQuery(table string) string {
 		"sum(total_usage) AS total_usage " +
 		"FROM " + table + " " +
 		"WHERE month_year = (SELECT max(month_year) FROM " + table + ") " +
-		"GROUP BY cloud_provider, ifNull(finops_env, ''), ifNull(region, ''), resource_type, cost_unit, usage_unit"
+		"GROUP BY cloud_provider, finops_env, region, resource_type, cost_unit, usage_unit"
 }
 
 func BuildDataTimestampQuery(table string) string {
 	return "SELECT ifNull(finops_env, '') AS finops_env, max(month_year) AS data_timestamp " +
-		"FROM " + table + " GROUP BY ifNull(finops_env, '')"
+		"FROM " + table + " GROUP BY finops_env"
 }
 
 func buildSelects(columns []string, grouped bool) []string {
@@ -136,12 +137,7 @@ func nullableSelect(column string) string {
 func buildGroupBy(columns []string) []string {
 	groupBy := make([]string, 0, len(columns))
 	for _, column := range columns {
-		switch column {
-		case "finops_env", "region":
-			groupBy = append(groupBy, "ifNull("+column+", '')")
-		default:
-			groupBy = append(groupBy, column)
-		}
+		groupBy = append(groupBy, column)
 	}
 	return groupBy
 }

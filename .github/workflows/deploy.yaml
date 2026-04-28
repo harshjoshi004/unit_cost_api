@@ -36,23 +36,3 @@ jobs:
         run: |
           docker build -t $IMAGE:${{ github.sha }} ./unit_cost_engine_api
           docker push $IMAGE:${{ github.sha }}
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-
-      - name: Setup kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
-          chmod 600 ~/.kube/config
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        run: terraform init -upgrade
-        working-directory: .
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
-        working-directory: .
