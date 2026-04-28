@@ -74,8 +74,8 @@ func BuildOpenCostQuery(table string) (string, []any) {
 		"sum(total_cost) / nullIf(sum(total_usage), 0) AS unit_cost " +
 		"FROM " + table + " " +
 		"WHERE month_year = (SELECT max(month_year) FROM " + table + ") " +
-		"GROUP BY resource_type, ifNull(region, '') " +
-		"ORDER BY resource_type, ifNull(region, '')"
+		"GROUP BY resource_type, region " +   
+		"ORDER BY resource_type, region"
 
 	return query, nil
 }
