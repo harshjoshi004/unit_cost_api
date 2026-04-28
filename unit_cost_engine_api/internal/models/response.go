@@ -1,7 +1,11 @@
 package models
 
-type QueryResponse struct {
-	Data []map[string]any `json:"data"`
+type UnitCostRow struct {
+	InstanceType  string  `json:"instance_type"`
+	Region        string  `json:"region"`
+	CloudProvider string  `json:"cloud_provider"`
+	FinopsEnv     string  `json:"finops_env"`
+	UnitCost      float64 `json:"unit_cost"`
 }
 
 type ErrorResponse struct {

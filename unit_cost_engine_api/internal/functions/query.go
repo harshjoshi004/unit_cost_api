@@ -2,11 +2,10 @@ package functions
 
 import (
 	"context"
-	"encoding/json"
+	"database/sql"
 	"log/slog"
 	"net/http"
 	"time"
-	"strconv"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 
@@ -14,125 +13,89 @@ import (
 	querysql "unit-cost-engine-api/internal/sql"
 )
 
-func Query(db ch.Conn, table string, logger *slog.Logger) http.HandlerFunc {
+func UnitCost(db ch.Conn, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-
-		var req models.QueryRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "invalid JSON body"})
-			return
+		filters := querysql.UnitCostFilters{
+			Region:        queryParam(r, "region"),
+			CloudProvider: queryParam(r, "cloud_provider"),
+			FinopsEnv:     queryParam(r, "finops_env"),
 		}
 
-		statement, args, err := querysql.BuildDataQuery(querysql.DataQueryOptions{
-			Table:     table,
-			Filters:   req.Filters,
-			StartTime: req.StartTime,
-			EndTime:   req.EndTime,
-			Columns:   req.Columns,
-			GroupBy:   req.GroupBy,
-			Limit:     req.Limit,
-		})
-		if err != nil {
-			logger.Warn("query validation failed",
-				"path", r.URL.Path,
-				"filters", req.Filters,
-				"columns", req.Columns,
-				"group_by", req.GroupBy,
-				"error", err,
-			)
-			writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
-			return
-		}
+		statement, args := querysql.BuildUnitCostQuery(filters)
 
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
 
 		rows, err := db.Query(ctx, statement, args...)
 		if err != nil {
-			logger.Error("query failed", "path", r.URL.Path, "error", err)
+			logger.Error("unit cost query failed", "path", r.URL.Path, "error", err)
 			writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "database query failed"})
 			return
 		}
 		defer rows.Close()
 
-		data, err := scanRows(rows)
-		if err != nil {
-			logger.Error("row scan failed", "path", r.URL.Path, "error", err)
+		data := make([]models.UnitCostRow, 0)
+		for rows.Next() {
+			var row models.UnitCostRow
+			var region sql.NullString
+			var cloudProvider sql.NullString
+			var finopsEnv sql.NullString
+			var unitCost sql.NullFloat64
+
+			if err := rows.Scan(&row.InstanceType, &region, &cloudProvider, &finopsEnv, &unitCost); err != nil {
+				logger.Error("unit cost row scan failed", "path", r.URL.Path, "error", err)
+				writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "database row scan failed"})
+				return
+			}
+
+			row.Region = nullString(region)
+			row.CloudProvider = nullString(cloudProvider)
+			row.FinopsEnv = nullString(finopsEnv)
+			if unitCost.Valid {
+				row.UnitCost = unitCost.Float64
+			}
+
+			data = append(data, row)
+		}
+
+		if err := rows.Err(); err != nil {
+			logger.Error("unit cost rows failed", "path", r.URL.Path, "error", err)
 			writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "database row scan failed"})
 			return
 		}
 
-		logger.Info("data query completed",
+		logger.Info("unit cost query completed",
 			"path", r.URL.Path,
-			"filters", req.Filters,
-			"columns", req.Columns,
-			"group_by", req.GroupBy,
+			"region", filterValue(filters.Region),
+			"cloud_provider", filterValue(filters.CloudProvider),
+			"finops_env", filterValue(filters.FinopsEnv),
 			"rows", len(data),
 			"duration_ms", time.Since(start).Milliseconds(),
 		)
 
-		writeJSON(w, http.StatusOK, models.QueryResponse{Data: data})
+		writeJSON(w, http.StatusOK, data)
 	}
 }
 
-type clickhouseRows interface {
-	Columns() []string
-	Scan(dest ...any) error
-	Next() bool
-	Err() error
+func queryParam(r *http.Request, key string) *string {
+	value := r.URL.Query().Get(key)
+	if value == "" {
+		return nil
+	}
+	return &value
 }
 
-func scanRows(rows clickhouseRows) ([]map[string]any, error) {
-	columns := rows.Columns()
-	result := make([]map[string]any, 0)
-
-	for rows.Next() {
-		raw := make([][]byte, len(columns))
-		dest := make([]any, len(columns))
-
-		for i := range raw {
-			dest[i] = &raw[i]
-		}
-
-		if err := rows.Scan(dest...); err != nil {
-			return nil, err
-		}
-
-		item := make(map[string]any, len(columns))
-
-		for i, col := range columns {
-			if raw[i] == nil {
-				item[col] = nil
-				continue
-			}
-
-			str := string(raw[i])
-
-			// try float
-			switch col {
-			case "total_cost", "total_usage", "unit_cost":
-				if f, err := strconv.ParseFloat(str, 64); err == nil {
-					item[col] = f
-					continue
-				}
-			}
-
-			// fallback string
-			item[col] = str
-		}
-
-		result = append(result, item)
+func nullString(value sql.NullString) string {
+	if !value.Valid {
+		return ""
 	}
-
-	return result, rows.Err()
+	return value.String
 }
 
-func jsonSafeValue(value any) any {
-	switch v := value.(type) {
-	case time.Time:
-		return v.UTC().Format(time.RFC3339)
-	default:
-		return v
+func filterValue(value *string) string {
+	if value == nil {
+		return ""
 	}
+	return *value
 }

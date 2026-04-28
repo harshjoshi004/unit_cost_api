@@ -15,7 +15,7 @@ func New(db ch.Conn, table string, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/v1/health", functions.Health())
-	mux.HandleFunc("POST /api/v1/data/query", functions.Query(db, table, logger))
+	mux.HandleFunc("GET /api/v1/unit-cost", functions.UnitCost(db, logger))
 	mux.HandleFunc("GET /api/v1/data/opencost", functions.OpenCost(db, table, logger))
 	mux.Handle("GET /metrics", promhttp.Handler())
 

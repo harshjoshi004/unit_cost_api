@@ -21,6 +21,8 @@ var gpuWords = []string{
 
 var pvWords = []string{
 	"disk",
+	"rwo",
+	"hyperdisk",
 	"storage",
 	"volume",
 	"pvc",

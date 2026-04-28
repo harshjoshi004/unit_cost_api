@@ -26,7 +26,7 @@ Defines the HTTP routes and request logging middleware.
 /internal/functions/query.go
 ```
 
-Handles `POST /api/v1/data/query`. It validates the request, asks the SQL builder for a safe query, runs it, and returns JSON.
+Handles `GET /api/v1/unit-cost`. It reads optional filters, runs the fixed unit-cost query, and returns JSON.
 
 ```text
 /internal/functions/opencost.go
@@ -42,10 +42,9 @@ Simple health check endpoint.
 
 ```text
 /internal/sql/builder.go
-/internal/sql/filters.go
 ```
 
-Builds ClickHouse SQL from whitelisted columns, filters, and groupings. Endpoint functions do not contain raw SQL.
+Builds the fixed ClickHouse SQL used by the API. The unit-cost endpoint always reads from `test.data`.
 
 ```text
 /internal/metrics/gauges.go
@@ -72,7 +71,7 @@ Reads ClickHouse environment variables and opens the database connection.
 router -> function -> sql -> db -> response
 ```
 
-The router maps a path to a function. The function validates HTTP input and calls the SQL builder. The SQL builder only accepts known-safe column names. The function then queries ClickHouse and writes the response.
+The router maps a path to a function. The function reads HTTP input and calls the SQL builder. The function then queries ClickHouse and writes the response.
 
 ## API
 
@@ -88,35 +87,39 @@ Base path:
 curl http://localhost:7000/api/v1/health
 ```
 
-### Flexible Data Query
+### Unit Cost
 
 ```bash
-curl -X POST http://localhost:7000/api/v1/data/query \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "filters": {
-      "finops_env": "prod",
-      "region": "asia-south1"
-    },
-    "start_time": "2026-04-01T00:00:00Z",
-    "end_time": "2026-04-30T23:59:59Z",
-    "columns": ["resource_type", "total_cost"],
-    "group_by": ["resource_type"],
-    "limit": 1000
-  }'
+curl 'http://localhost:7000/api/v1/unit-cost?region=eastus&cloud_provider=azure&finops_env=prod'
 ```
 
-If `group_by` is present, aggregate columns are grouped:
+Query parameters are optional:
 
-- `total_cost` -> `sum(total_cost)`
-- `total_usage` -> `sum(total_usage)`
-- `unit_cost` -> `SUM(total_cost) / nullIf(SUM(total_usage), 0)`
+- `region`
+- `cloud_provider`
+- `finops_env`
 
-If `start_time` and `end_time` are missing, the API returns the latest `month_year` snapshot.
+The endpoint always returns unit cost by instance type for the latest `month_year` snapshot in `test.data`.
 
-`limit` is optional. If it is missing, the API uses `1000`. The maximum allowed value is `10000`.
+Unit cost is computed as:
 
-When `SUM(total_usage)` is zero, grouped `unit_cost` returns `null` instead of dividing by zero.
+```text
+sum(total_cost) / nullIf(sum(total_usage), 0)
+```
+
+Response:
+
+```json
+[
+  {
+    "instance_type": "D2s_v3",
+    "region": "eastus",
+    "cloud_provider": "azure",
+    "finops_env": "prod",
+    "unit_cost": 0.2483
+  }
+]
+```
 
 ### OpenCost CSV
 
@@ -209,13 +212,13 @@ import requests
 
 base = "http://localhost:7000"
 
-payload = {
-    "filters": {"finops_env": "prod"},
-    "columns": ["resource_type", "region", "total_cost"],
-    "group_by": ["resource_type", "region"],
+params = {
+    "region": "eastus",
+    "cloud_provider": "azure",
+    "finops_env": "prod",
 }
 
-print(requests.post(f"{base}/api/v1/data/query", json=payload).json())
+print(requests.get(f"{base}/api/v1/unit-cost", params=params).json())
 print(requests.get(f"{base}/api/v1/data/opencost").text[:500])
 print(requests.get(f"{base}/metrics").text[:500])
 ```
