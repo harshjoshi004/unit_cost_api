@@ -87,11 +87,14 @@ func scanRows(rows clickhouseRows) ([]map[string]any, error) {
 	result := make([]map[string]any, 0)
 
 	for rows.Next() {
-		raw := make([]string, len(columns))
 		dest := make([]any, len(columns))
 
-		for i := range raw {
-			dest[i] = &raw[i]
+		values := make([]any, len(columns))
+
+		for i := range dest {
+			var v any
+			dest[i] = &v
+			values[i] = v
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -101,7 +104,16 @@ func scanRows(rows clickhouseRows) ([]map[string]any, error) {
 		item := make(map[string]any, len(columns))
 
 		for i, col := range columns {
-			item[col] = raw[i]
+			val := *(dest[i].(*any))
+
+			switch v := val.(type) {
+			case []byte:
+				item[col] = string(v)
+			case time.Time:
+				item[col] = v.UTC().Format(time.RFC3339)
+			default:
+				item[col] = v
+			}
 		}
 
 		result = append(result, item)
