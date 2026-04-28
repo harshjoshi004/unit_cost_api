@@ -76,7 +76,7 @@ func TestBuildOpenCostQueryUsesSafeWeightedMathAndOrdering(t *testing.T) {
 		t.Fatalf("query did not contain safe unit_cost math: %s", query)
 	}
 
-	if !strings.Contains(query, "ORDER BY resource_type, ifNull(region, '')") {
+	if !strings.Contains(query, "ORDER BY resource_type, region") {
 		t.Fatalf("query did not contain stable ordering: %s", query)
 	}
 }
