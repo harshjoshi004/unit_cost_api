@@ -91,8 +91,7 @@ func scanRows(rows clickhouseRows) ([]map[string]any, error) {
 		dest := make([]any, len(columns))
 
 		for i := range values {
-			var v any
-			dest[i] = &v
+			dest[i] = new(any)
 		}
 
 		if err := rows.Scan(dest...); err != nil {
@@ -105,13 +104,8 @@ func scanRows(rows clickhouseRows) ([]map[string]any, error) {
 			val := *(dest[i].(*any))
 
 			switch v := val.(type) {
-
-			case nil:
-				item[column] = nil
-
 			case []byte:
 				item[column] = string(v)
-
 			default:
 				item[column] = v
 			}
