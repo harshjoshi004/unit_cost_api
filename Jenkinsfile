@@ -22,7 +22,7 @@ spec:
   }
 
   environment {
-    IMAGE = "your-dockerhub-username/unit-cost-api"
+    IMAGE = "spideralxjoshi/unit-cost-api"
     TAG   = "${BUILD_NUMBER}"
   }
 
@@ -30,7 +30,7 @@ spec:
 
     stage('Checkout') {
       steps {
-        git url: 'YOUR_REPO_URL', branch: 'main'
+        git url: 'Yhttps://github.com/harshjoshi004/unit_cost_api', branch: 'main'
       }
     }
 

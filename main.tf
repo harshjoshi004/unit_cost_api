@@ -1,3 +1,7 @@
+variable "image_tag" {
+  type = string
+}
+
 resource "helm_release" "prometheus" {
   name       = "prometheus"
   repository = "https://prometheus-community.github.io/helm-charts"
@@ -25,31 +29,16 @@ resource "helm_release" "prometheus" {
   ]
 }
 
-resource "helm_release" "jenkins" {
-  name       = "jenkins"
-  repository = "https://charts.jenkins.io"
-  chart      = "jenkins"
-  namespace  = "default"
-
-  values = [
-    yamlencode({
-      controller = {
-        serviceType = "ClusterIP"
-      }
-    })
-  ]
-}
-
 resource "helm_release" "unit_cost_api" {
   name      = "unit-cost-api"
-  chart     = "api-chart"
+  chart     = "api-chart"   
   namespace = "default"
 
   values = [
     yamlencode({
       image = {
         repository = "spideralxjoshi/unit-cost-api"
-        tag        = "latest"
+        tag        = var.image_tag   
       }
 
       service = {
@@ -74,5 +63,32 @@ resource "helm_release" "unit_cost_api" {
 
   depends_on = [
     helm_release.prometheus
+  ]
+}
+
+resource "helm_release" "api_monitor" {
+  name      = "api-monitor"
+  chart     = "../helm/servicemonitor-chart"
+  namespace = "default"
+
+  values = [
+    yamlencode({
+      name = "api-monitor"
+
+      selector = {
+        app = "api"
+      }
+
+      endpoint = {
+        port     = "http"
+        path     = "/metrics"
+        interval = "30s"
+      }
+    })
+  ]
+
+  depends_on = [
+    helm_release.prometheus,
+    helm_release.unit_cost_api
   ]
 }

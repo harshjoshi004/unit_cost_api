@@ -1,0 +1,9 @@
+name: api-monitor
+
+selector:
+  app: api   # must match your service label
+
+endpoint:
+  port: http
+  path: /metrics
+  interval: 30s
