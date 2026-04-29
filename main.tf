@@ -31,32 +31,61 @@ resource "helm_release" "prometheus" {
 
 resource "helm_release" "unit_cost_api" {
   name      = "unit-cost-api"
-  chart = "./api-chart"
+  chart     = "./unitcost-engine"
   namespace = "k8s-cost-insights"
 
   values = [
     yamlencode({
+      # ------------------------------------------------------------
+      # Image
+      # ------------------------------------------------------------
       image = {
-        repository = "spideralxjoshi/unit-cost-api"
-        tag        = var.image_tag   
+        repository  = "spideralxjoshi/unit-cost-api"
+        tag         = "f2dd411fbbaaa921b5c8001e1fe162c4f8bf50b1"
+        pullPolicy  = "IfNotPresent"
       }
 
+      # ------------------------------------------------------------
+      # Deployment
+      # ------------------------------------------------------------
+      replicaCount = 1
+
+      # ------------------------------------------------------------
+      # Service
+      # ------------------------------------------------------------
       service = {
-        name = "api"
+        name = "unitcost-engine"
+        type = "ClusterIP"
         port = 7000
       }
 
+      # ------------------------------------------------------------
+      # Ingress
+      # ------------------------------------------------------------
       ingress = {
-        enabled = true
-        host    = "unitcost.127.0.0.1.nip.io"
+        enabled  = true
+        className = "traefik"
+        host     = "unitcost.127.0.0.1.nip.io"
+        path     = "/"
       }
 
-      env = {
-        CLICKHOUSE_ADDR     = "clickhouse.k8s-cost-insights.svc.cluster.local:9000"
-        CLICKHOUSE_DATABASE = "test"
-        CLICKHOUSE_USERNAME = "metabasetest"
-        CLICKHOUSE_PASSWORD = "123456"
-        CLICKHOUSE_TABLE    = "data"
+      # ------------------------------------------------------------
+      # Secrets (IMPORTANT)
+      # ------------------------------------------------------------
+      envFromSecret = "unitcost-engine-secret"
+
+      # ------------------------------------------------------------
+      # Resources
+      # ------------------------------------------------------------
+      resources = {
+        requests = {
+          cpu    = "200m"
+          memory = "256Mi"
+        }
+        limits = {
+          cpu    = "1"
+          memory = "1Gi"
+        }
       }
     })
   ]
