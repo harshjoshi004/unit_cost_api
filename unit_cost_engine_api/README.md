@@ -44,7 +44,7 @@ Simple health check endpoint.
 /internal/sql/builder.go
 ```
 
-Builds the fixed ClickHouse SQL used by the API. The unit-cost endpoint always reads from `test.data`.
+Builds the fixed ClickHouse SQL used by the API. The unit-cost endpoint reads from the configured ClickHouse table.
 
 ```text
 /internal/metrics/gauges.go
@@ -99,7 +99,7 @@ Query parameters are optional:
 - `cloud_provider`
 - `finops_env`
 
-The endpoint always returns unit cost by instance type for the latest `month_year` snapshot in `test.data`.
+The endpoint always returns unit cost by instance type for the latest `month_year` snapshot in the configured ClickHouse table.
 
 Unit cost is computed as:
 

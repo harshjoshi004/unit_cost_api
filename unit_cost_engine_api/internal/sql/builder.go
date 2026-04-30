@@ -2,18 +2,14 @@ package sql
 
 import "strings"
 
-const (
-	unitCostTable = "test.data"
-)
-
 type UnitCostFilters struct {
 	Region        *string
 	CloudProvider *string
 	FinopsEnv     *string
 }
 
-func BuildUnitCostQuery(filters UnitCostFilters) (string, []any) {
-	where := []string{"month_year = (SELECT max(month_year) FROM " + unitCostTable + ")"}
+func BuildUnitCostQuery(table string, filters UnitCostFilters) (string, []any) {
+	where := []string{"month_year = (SELECT max(month_year) FROM " + table + ")"}
 	args := make([]any, 0, 3)
 
 	if filters.Region != nil {
@@ -35,7 +31,7 @@ func BuildUnitCostQuery(filters UnitCostFilters) (string, []any) {
 		"cloud_provider, " +
 		"finops_env, " +
 		"sum(total_cost) / nullIf(sum(total_usage), 0) AS unit_cost " +
-		"FROM " + unitCostTable + " " +
+		"FROM " + table + " " +
 		"WHERE " + strings.Join(where, " AND ") + " " +
 		"GROUP BY resource_type, region, cloud_provider, finops_env " +
 		"ORDER BY resource_type"

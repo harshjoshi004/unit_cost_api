@@ -13,7 +13,7 @@ import (
 	querysql "unit-cost-engine-api/internal/sql"
 )
 
-func UnitCost(db ch.Conn, logger *slog.Logger) http.HandlerFunc {
+func UnitCost(db ch.Conn, table string, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		filters := querysql.UnitCostFilters{
@@ -22,7 +22,7 @@ func UnitCost(db ch.Conn, logger *slog.Logger) http.HandlerFunc {
 			FinopsEnv:     queryParam(r, "finops_env"),
 		}
 
-		statement, args := querysql.BuildUnitCostQuery(filters)
+		statement, args := querysql.BuildUnitCostQuery(table, filters)
 
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
